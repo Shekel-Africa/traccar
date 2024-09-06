@@ -36,13 +36,13 @@ public class TeltonikaProtocolEncoder extends BaseProtocolEncoder {
 
         ByteBuf buf = Unpooled.buffer();
 
-        buf.writeInt(0);
-        buf.writeInt(content.length + 8);
-        buf.writeByte(TeltonikaProtocolDecoder.CODEC_12);
+        buf.writeInt(0); //preamble
+        buf.writeInt(content.length + 8); // data size (codecID + quantity + type + length + data + quantity)
+        buf.writeByte(TeltonikaProtocolDecoder.CODEC_12);// codecID
         buf.writeByte(1); // quantity
         buf.writeByte(5); // type
-        buf.writeInt(content.length);
-        buf.writeBytes(content);
+        buf.writeInt(content.length);// length
+        buf.writeBytes(content);// data
         buf.writeByte(1); // quantity
         buf.writeInt(Checksum.crc16(Checksum.CRC16_IBM, buf.nioBuffer(8, buf.writerIndex() - 8)));
 

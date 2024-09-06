@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.traccar.storage.QueryIgnore;
 import org.traccar.storage.StorageName;
 
@@ -149,6 +151,7 @@ public class Position extends Message {
     public static final String ALARM_FUEL_LEAK = "fuelLeak";
     public static final String ALARM_TAMPERING = "tampering";
     public static final String ALARM_REMOVING = "removing";
+    public static final Logger LOGGER = LoggerFactory.getLogger(Position.class);
 
     public Position() {
     }
@@ -232,6 +235,7 @@ public class Position extends Message {
     }
 
     public void setLatitude(double latitude) {
+        LOGGER.debug("Latitude: {}", latitude);
         if (latitude < -90 || latitude > 90) {
             throw new IllegalArgumentException("Latitude out of range");
         }

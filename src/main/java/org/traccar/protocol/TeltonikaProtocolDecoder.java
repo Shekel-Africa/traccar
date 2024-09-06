@@ -461,9 +461,10 @@ public class TeltonikaProtocolDecoder extends BaseProtocolDecoder {
             position.setTime(new Date(buf.readLong()));
 
             position.set("priority", buf.readUnsignedByte());
-
-            position.setLongitude(buf.readInt() / 10000000.0);
-            position.setLatitude(buf.readInt() / 10000000.0);
+            Integer longitude = buf.readInt();
+            Integer latitude = buf.readInt();
+            position.setLongitude(longitude / 10000000.0);
+            position.setLatitude(latitude / 10000000.0);
             position.setAltitude(buf.readShort());
             position.setCourse(buf.readUnsignedShort());
 
@@ -516,7 +517,7 @@ public class TeltonikaProtocolDecoder extends BaseProtocolDecoder {
         }
 
         // Read 16 byte data
-        if (extended) {
+        if (extended && codec != CODEC_8_EXT && codec != CODEC_16) {
             int cnt = readExtByte(buf, codec, CODEC_8_EXT);
             for (int j = 0; j < cnt; j++) {
                 int id = readExtByte(buf, codec, CODEC_8_EXT, CODEC_16);
