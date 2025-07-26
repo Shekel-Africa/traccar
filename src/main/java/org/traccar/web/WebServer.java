@@ -45,6 +45,7 @@ import org.traccar.LifecycleObject;
 import org.traccar.api.CorsResponseFilter;
 import org.traccar.api.DateParameterConverterProvider;
 import org.traccar.api.ResourceErrorHandler;
+import org.traccar.api.StreamWriter;
 import org.traccar.api.resource.ServerResource;
 import org.traccar.api.security.SecurityRequestFilter;
 import org.traccar.config.Config;
@@ -165,13 +166,15 @@ public class WebServer implements LifecycleObject {
         }
 
         ResourceConfig resourceConfig = new ResourceConfig();
+        resourceConfig.property("jersey.config.server.wadl.disableWadl", true);
         resourceConfig.registerClasses(
                 JacksonFeature.class,
                 ObjectMapperContextResolver.class,
                 DateParameterConverterProvider.class,
                 SecurityRequestFilter.class,
                 CorsResponseFilter.class,
-                ResourceErrorHandler.class);
+                ResourceErrorHandler.class,
+                StreamWriter.class);
         resourceConfig.packages(ServerResource.class.getPackage().getName());
         if (resourceConfig.getClasses().stream().filter(ServerResource.class::equals).findAny().isEmpty()) {
             LOGGER.warn("Failed to load API resources");
@@ -216,6 +219,8 @@ public class WebServer implements LifecycleObject {
                     break;
             }
         }
+
+        sessionCookieConfig.setHttpOnly(true);
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Anton Tananaev (anton@traccar.org)
+ * Copyright 2024 - 2025 Anton Tananaev (anton@traccar.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.traccar.config.Config;
 import org.traccar.database.BufferingManager;
 import org.traccar.database.NotificationManager;
@@ -73,8 +71,6 @@ import java.util.stream.Stream;
 @ChannelHandler.Sharable
 public class ProcessingHandler extends ChannelInboundHandlerAdapter implements BufferingManager.Callback {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ProcessingHandler.class);
-
     private final CacheManager cacheManager;
     private final NotificationManager notificationManager;
     private final PositionLogger positionLogger;
@@ -99,6 +95,7 @@ public class ProcessingHandler extends ChannelInboundHandlerAdapter implements B
         bufferingManager = new BufferingManager(config, this);
 
         positionHandlers = Stream.of(
+                ComputedAttributesHandler.Early.class,
                 OutdatedHandler.class,
                 TimeHandler.class,
                 GeolocationHandler.class,
@@ -109,7 +106,7 @@ public class ProcessingHandler extends ChannelInboundHandlerAdapter implements B
                 GeocoderHandler.class,
                 SpeedLimitHandler.class,
                 MotionHandler.class,
-                ComputedAttributesHandler.class,
+                ComputedAttributesHandler.Late.class,
                 EngineHoursHandler.class,
                 DriverHandler.class,
                 CopyAttributesHandler.class,
@@ -170,14 +167,21 @@ public class ProcessingHandler extends ChannelInboundHandlerAdapter implements B
         iterator.next().handlePosition(position, new BasePositionHandler.Callback() {
             @Override
             public void processed(boolean filtered) {
-                if (!filtered) {
-                    if (iterator.hasNext()) {
-                        iterator.next().handlePosition(position, this);
+                Runnable continuation = () -> {
+                    if (!filtered) {
+                        if (iterator.hasNext()) {
+                            iterator.next().handlePosition(position, this);
+                        } else {
+                            processEventHandlers(ctx, position);
+                        }
                     } else {
-                        processEventHandlers(ctx, position);
+                        finishedProcessing(ctx, position, true);
                     }
+                };
+                if (ctx.executor().inEventLoop()) {
+                    continuation.run();
                 } else {
-                    finishedProcessing(ctx, position, true);
+                    ctx.executor().execute(continuation);
                 }
             }
         });
